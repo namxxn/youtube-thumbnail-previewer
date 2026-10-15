@@ -25,7 +25,7 @@ describe('mulberry32', () => {
 
 describe('hashString', () => {
   it('is deterministic', () => {
-    expect(hashString('medblocks')).toBe(hashString('medblocks'));
+    expect(hashString('channel-name')).toBe(hashString('channel-name'));
   });
 
   it('differs for different inputs', () => {
