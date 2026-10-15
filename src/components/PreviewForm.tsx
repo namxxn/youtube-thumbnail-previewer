@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
 import type { Theme } from '../theme';
+import type { CopyImageResult } from '../copyImage';
 
 export type ViewMode = 'desktop' | 'mobile';
 
@@ -33,7 +34,17 @@ interface PreviewFormProps {
   position: number;
   onPositionChange: (position: number) => void;
   onShuffle: () => void;
+  onCopyImage: () => Promise<CopyImageResult>;
 }
+
+type CopyStatus = 'idle' | 'copying' | 'copied' | 'downloaded';
+
+const COPY_LABELS: Record<CopyStatus, string> = {
+  idle: 'Copy as image',
+  copying: 'Copying…',
+  copied: 'Copied!',
+  downloaded: 'Downloaded',
+};
 
 export function PreviewForm({
   title,
@@ -55,9 +66,28 @@ export function PreviewForm({
   position,
   onPositionChange,
   onShuffle,
+  onCopyImage,
 }: PreviewFormProps) {
   const [thumbnailName, setThumbnailName] = useState<string>();
   const [thumbnailError, setThumbnailError] = useState<string>();
+  const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
+
+  useEffect(() => {
+    if (copyStatus !== 'copied' && copyStatus !== 'downloaded') {
+      return;
+    }
+    const timer = setTimeout(() => setCopyStatus('idle'), 2000);
+    return () => clearTimeout(timer);
+  }, [copyStatus]);
+
+  const handleCopyImage = async () => {
+    setCopyStatus('copying');
+    try {
+      setCopyStatus(await onCopyImage());
+    } catch {
+      setCopyStatus('idle');
+    }
+  };
   const [avatarName, setAvatarName] = useState<string>();
 
   const handleThumbnail = (event: ChangeEvent<HTMLInputElement>) => {
@@ -89,6 +119,15 @@ export function PreviewForm({
 
   return (
     <form className="flex flex-col gap-6" onSubmit={(event) => event.preventDefault()}>
+      <button
+        type="button"
+        onClick={handleCopyImage}
+        disabled={copyStatus === 'copying'}
+        className="w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-700 disabled:opacity-60"
+      >
+        <span aria-live="polite">{COPY_LABELS[copyStatus]}</span>
+      </button>
+
       <Field label="Title" required>
         <input
           type="text"

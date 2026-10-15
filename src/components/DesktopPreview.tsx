@@ -1,3 +1,4 @@
+import type { RefObject } from 'react';
 import type { Video } from '../types';
 import type { Theme } from '../theme';
 import { THEMES, themeStyle } from '../theme';
@@ -39,6 +40,7 @@ interface DesktopPreviewProps {
   shorts: Video[];
   position: number;
   theme: Theme;
+  frameRef: RefObject<HTMLDivElement | null>;
 }
 
 export function DesktopPreview({
@@ -47,8 +49,9 @@ export function DesktopPreview({
   shorts,
   position,
   theme,
+  frameRef,
 }: DesktopPreviewProps) {
-  const { containerRef, contentRef, scale, height } = useFitScale(DESKTOP_WIDTH);
+  const { containerRef, scale, height } = useFitScale(DESKTOP_WIDTH, frameRef);
   const tokens = THEMES[theme];
   const borderColor = theme === 'dark' ? '#303030' : '#d9d9d9';
 
@@ -61,7 +64,7 @@ export function DesktopPreview({
     <div ref={containerRef} className="w-full overflow-hidden">
       <div style={{ height }}>
         <div
-          ref={contentRef}
+          ref={frameRef}
           className="origin-top-left bg-[var(--yt-bg)] text-[var(--yt-text)] shadow-sm ring-1 ring-black/10"
           style={{ width: DESKTOP_WIDTH, transform: `scale(${scale})`, ...themeStyle(theme) }}
         >

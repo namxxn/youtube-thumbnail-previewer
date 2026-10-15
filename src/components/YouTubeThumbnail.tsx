@@ -18,6 +18,9 @@ export function YouTubeThumbnail({ videoId }: YouTubeThumbnailProps) {
       // loading measures the pre-scale position, leaving on-screen cards blank.
       width={480}
       height={360}
+      // crossOrigin lets the loaded image be painted into the capture canvas
+      // without tainting it; ytimg serves Access-Control-Allow-Origin: *.
+      crossOrigin="anonymous"
       referrerPolicy="no-referrer"
       onError={() => {
         if (src !== fallback) {

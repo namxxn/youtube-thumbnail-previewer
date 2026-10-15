@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { Video } from './types';
 import type { Theme } from './theme';
+import { THEMES } from './theme';
+import { copyPreviewImage } from './copyImage';
 import { useObjectUrl } from './useObjectUrl';
 import { FEED_REGION_CODES, regionCategoryIds, useFeed } from './useFeed';
 import { CATEGORY_LABELS, REGIONS } from './feedConstants';
@@ -29,9 +31,21 @@ export function App() {
   const [categoryId, setCategoryId] = useState('0');
   const [seed, setSeed] = useState(1);
   const [position, setPosition] = useState(2);
+  const frameRef = useRef<HTMLDivElement>(null);
 
   const thumbnailUrl = useObjectUrl(thumbnailFile);
   const avatarUrl = useObjectUrl(avatarFile);
+
+  const copyPreview = useCallback(() => {
+    const node = frameRef.current;
+    if (!node) {
+      return Promise.reject(new Error('Preview is not ready yet'));
+    }
+    return copyPreviewImage(node, {
+      backgroundColor: THEMES[theme].bg,
+      fileName: viewMode === 'desktop' ? 'yt-preview-desktop.png' : 'yt-preview-mobile.png',
+    });
+  }, [theme, viewMode]);
 
   const { videos, shorts } = useFeed({
     region,
@@ -98,6 +112,7 @@ export function App() {
               position={position}
               onPositionChange={setPosition}
               onShuffle={() => setSeed((current) => current + 1)}
+              onCopyImage={copyPreview}
             />
           </div>
         </aside>
@@ -110,6 +125,7 @@ export function App() {
               shorts={shorts}
               position={position}
               theme={theme}
+              frameRef={frameRef}
             />
           ) : (
             <MobilePreview
@@ -118,6 +134,7 @@ export function App() {
               shorts={shorts}
               position={position}
               theme={theme}
+              frameRef={frameRef}
             />
           )}
         </main>

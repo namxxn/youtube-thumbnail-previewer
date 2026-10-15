@@ -89,6 +89,8 @@ function Avatar({ video }: { video: Video }) {
         alt=""
         width={36}
         height={36}
+        // crossOrigin so ggpht avatars can be painted into the capture canvas.
+        crossOrigin="anonymous"
         referrerPolicy="no-referrer"
         className="shrink-0 rounded-full bg-neutral-700 object-cover"
         style={dimension}

@@ -1,8 +1,13 @@
 import { useLayoutEffect, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 
-export function useFitScale(naturalWidth: number) {
+export function useFitScale(
+  naturalWidth: number,
+  externalContentRef?: RefObject<HTMLDivElement | null>,
+) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const internalContentRef = useRef<HTMLDivElement>(null);
+  const contentRef = externalContentRef ?? internalContentRef;
   const [scale, setScale] = useState(1);
   const [height, setHeight] = useState<number>();
 
@@ -22,7 +27,7 @@ export function useFitScale(naturalWidth: number) {
     observer.observe(container);
     observer.observe(content);
     return () => observer.disconnect();
-  }, [naturalWidth]);
+  }, [naturalWidth, contentRef]);
 
   return { containerRef, contentRef, scale, height };
 }
