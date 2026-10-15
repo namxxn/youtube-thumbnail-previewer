@@ -1,0 +1,19 @@
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  /* Roboto v51 ships as a variable font; one Latin file serves weights 400-500. */
+  font-weight: 400 500;
+  font-display: swap;
+  src: url('/fonts/roboto-latin.woff2') format('woff2');
+}
+
+html {
+  font-family:
+    'Roboto',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
