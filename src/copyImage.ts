@@ -34,9 +34,14 @@ export async function copyPreviewImage(
   return 'downloaded';
 }
 
+// Safari/WebKit leaves cross-origin images out of the first html-to-image
+// pass(es); re-running the render warms its cache so every thumbnail is included.
+const IS_WEBKIT =
+  typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
 async function renderBlob(node: HTMLElement, backgroundColor: string): Promise<Blob> {
   await document.fonts.ready;
-  const blob = await toBlob(node, {
+  const options = {
     // Capture at natural size: strip the fit-to-viewport transform (applied to
     // the clone only) and render against the theme background at 2x for sharpness.
     width: node.offsetWidth,
@@ -46,7 +51,11 @@ async function renderBlob(node: HTMLElement, backgroundColor: string): Promise<B
     // transform:none renders the clone unscaled; margin:0 guards against auto
     // margins resolving to pixel offsets that would shift the capture.
     style: { transform: 'none', margin: '0' },
-  });
+  };
+  let blob: Blob | null = null;
+  for (let pass = 0; pass < (IS_WEBKIT ? 3 : 1); pass += 1) {
+    blob = await toBlob(node, options);
+  }
   if (!blob) {
     throw new Error('Could not render the preview image');
   }
