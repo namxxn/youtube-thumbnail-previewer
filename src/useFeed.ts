@@ -11,6 +11,12 @@ const ALL_CATEGORIES = '0';
 // Shorts are vertical clips; YouTube treats anything up to a minute as Short-eligible.
 const SHORT_MAX_SECONDS = 60;
 
+// The live snapshot holds ~200 videos per region; a preview only shows a few rows
+// and a shelf, and "Copy as image" inlines every rendered image, so cap both lists.
+// 15 + the user's card fills four desktop rows and covers every position (max 12).
+const MAX_VIDEOS = 15;
+const MAX_SHORTS = 10;
+
 export const FEED_REGION_CODES = Object.keys(feed.regions);
 
 export function regionCategoryIds(region: string): string[] {
@@ -57,7 +63,7 @@ export function useFeed({
         videos.push(video);
       }
     }
-    return { videos, shorts };
+    return { videos: videos.slice(0, MAX_VIDEOS), shorts: shorts.slice(0, MAX_SHORTS) };
   }, [region, categoryId, seed, excludeChannelName]);
 }
 
