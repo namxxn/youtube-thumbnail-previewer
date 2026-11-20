@@ -141,7 +141,7 @@ export function DesktopPreview({
                 ))}
                 {shorts.length > 0 && (
                   <div className="col-span-4">
-                    <ShortsShelf shorts={shorts} cardWidth={SHORT_CARD_WIDTH} />
+                    <ShortsShelf shorts={shorts} cardWidth={SHORT_CARD_WIDTH} variant="desktop" />
                   </div>
                 )}
                 {restRows.map((video) => (

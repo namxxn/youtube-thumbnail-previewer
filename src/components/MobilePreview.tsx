@@ -91,7 +91,7 @@ export function MobilePreview({
             ))}
             {shorts.length > 0 && (
               <div className="px-3 pb-2">
-                <ShortsShelf shorts={shorts} cardWidth={SHORT_CARD_WIDTH} />
+                <ShortsShelf shorts={shorts} cardWidth={SHORT_CARD_WIDTH} variant="mobile" />
               </div>
             )}
             {afterShelf.map((video) => (

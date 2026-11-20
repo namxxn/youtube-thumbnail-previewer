@@ -4,6 +4,7 @@ import type { Theme } from '../theme';
 import type { CopyImageResult } from '../copyImage';
 
 export type ViewMode = 'desktop' | 'mobile';
+export type Format = 'video' | 'short';
 
 export interface CategoryOption {
   id: string;
@@ -11,15 +12,22 @@ export interface CategoryOption {
 }
 
 const TITLE_LIMIT = 70;
-const MAX_THUMBNAIL_BYTES = 1024 * 1024;
-const MAX_POSITION = 12;
+// YouTube rejects custom thumbnails above 2MB; the preview still renders them.
+const YOUTUBE_THUMBNAIL_BYTES = 2 * 1024 * 1024;
+// Long-form can sit anywhere in the first rows; a Short only matters within the
+// six cards the desktop shelf shows.
+const MAX_POSITION: Record<Format, number> = { video: 12, short: 6 };
 
 interface PreviewFormProps {
+  format: Format;
+  onFormatChange: (format: Format) => void;
   title: string;
   onTitleChange: (value: string) => void;
   channelName: string;
   onChannelNameChange: (value: string) => void;
+  thumbnailFile: File | null;
   onThumbnailChange: (file: File | null) => void;
+  avatarName?: string;
   onAvatarChange: (file: File | null) => void;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
@@ -47,11 +55,15 @@ const COPY_LABELS: Record<CopyStatus, string> = {
 };
 
 export function PreviewForm({
+  format,
+  onFormatChange,
   title,
   onTitleChange,
   channelName,
   onChannelNameChange,
+  thumbnailFile,
   onThumbnailChange,
+  avatarName,
   onAvatarChange,
   viewMode,
   onViewModeChange,
@@ -68,8 +80,6 @@ export function PreviewForm({
   onShuffle,
   onCopyImage,
 }: PreviewFormProps) {
-  const [thumbnailName, setThumbnailName] = useState<string>();
-  const [thumbnailError, setThumbnailError] = useState<string>();
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
 
   useEffect(() => {
@@ -88,25 +98,15 @@ export function PreviewForm({
       setCopyStatus('idle');
     }
   };
-  const [avatarName, setAvatarName] = useState<string>();
+  const isShort = format === 'short';
+  const maxPosition = MAX_POSITION[format];
 
   const handleThumbnail = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null;
-    if (file && file.size > MAX_THUMBNAIL_BYTES) {
-      setThumbnailError('Thumbnail must be under 1MB');
-      setThumbnailName(undefined);
-      onThumbnailChange(null);
-      return;
-    }
-    setThumbnailError(undefined);
-    setThumbnailName(file?.name);
-    onThumbnailChange(file);
+    onThumbnailChange(event.target.files?.[0] ?? null);
   };
 
   const handleAvatar = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null;
-    setAvatarName(file?.name);
-    onAvatarChange(file);
+    onAvatarChange(event.target.files?.[0] ?? null);
   };
 
   const handlePosition = (event: ChangeEvent<HTMLInputElement>) => {
@@ -114,11 +114,21 @@ export function PreviewForm({
     if (Number.isNaN(next)) {
       return;
     }
-    onPositionChange(Math.min(MAX_POSITION, Math.max(1, Math.round(next))));
+    onPositionChange(Math.min(maxPosition, Math.max(1, Math.round(next))));
   };
 
   return (
     <form className="flex flex-col gap-6" onSubmit={(event) => event.preventDefault()}>
+      <Segmented
+        label="Format"
+        value={format}
+        onChange={onFormatChange}
+        options={[
+          { value: 'video', label: 'Long-form' },
+          { value: 'short', label: 'Shorts' },
+        ]}
+      />
+
       <button
         type="button"
         onClick={handleCopyImage}
@@ -133,23 +143,31 @@ export function PreviewForm({
           type="text"
           value={title}
           onChange={(event) => onTitleChange(event.target.value)}
-          placeholder="Enter your video title"
+          placeholder={`Enter your ${isShort ? 'Short' : 'video'} title`}
           className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900"
         />
-        {title.length > TITLE_LIMIT && (
+        {!isShort && title.length > TITLE_LIMIT && (
           <p className="mt-1.5 text-xs text-amber-600">Titles truncate at around 70 characters</p>
         )}
       </Field>
 
-      <Field label="Thumbnail" required hint="Use a 16:9 image for best results">
+      <Field
+        label="Thumbnail"
+        required
+        hint={`Use a ${isShort ? '9:16 (1080×1920)' : '16:9'} image for best results`}
+      >
         <input
+          // Remount per format so the picker never shows the other format's file.
+          key={format}
           type="file"
           accept="image/*"
           onChange={handleThumbnail}
           className="block w-full text-sm text-neutral-600 file:mr-3 file:rounded-lg file:border-0 file:bg-neutral-900 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-neutral-700"
         />
-        {thumbnailName && <p className="mt-1.5 text-xs text-neutral-500">{thumbnailName}</p>}
-        {thumbnailError && <p className="mt-1.5 text-xs text-red-600">{thumbnailError}</p>}
+        {thumbnailFile && <p className="mt-1.5 text-xs text-neutral-500">{thumbnailFile.name}</p>}
+        {thumbnailFile && thumbnailFile.size > YOUTUBE_THUMBNAIL_BYTES && (
+          <p className="mt-1.5 text-xs text-amber-600">YouTube rejects thumbnails over 2MB</p>
+        )}
       </Field>
 
       <Field label="Avatar" hint="Optional. Falls back to a lettered circle.">
@@ -176,19 +194,21 @@ export function PreviewForm({
         <Select value={region} onChange={onRegionChange} options={regionOptions} />
       </Field>
 
-      <Field label="Feed category">
-        <Select value={categoryId} onChange={onCategoryChange} options={categoryOptions} />
-      </Field>
+      {!isShort && (
+        <Field label="Feed category">
+          <Select value={categoryId} onChange={onCategoryChange} options={categoryOptions} />
+        </Field>
+      )}
 
       <Field
-        label="My video position"
-        hint={`Where your video sits in the feed (1 to ${MAX_POSITION}).`}
+        label={isShort ? 'My Short position' : 'My video position'}
+        hint={`Where your ${isShort ? 'Short sits in the shelf' : 'video sits in the feed'} (1 to ${maxPosition}).`}
       >
         <div className="flex items-center gap-3">
           <input
             type="number"
             min={1}
-            max={MAX_POSITION}
+            max={maxPosition}
             value={position}
             onChange={handlePosition}
             className="w-20 rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900"
@@ -203,15 +223,18 @@ export function PreviewForm({
         </div>
       </Field>
 
-      <Segmented
-        label="Preview surface"
-        value={viewMode}
-        onChange={onViewModeChange}
-        options={[
-          { value: 'desktop', label: 'Desktop' },
-          { value: 'mobile', label: 'Mobile' },
-        ]}
-      />
+      {/* Shorts mode always shows every surface side by side. */}
+      {!isShort && (
+        <Segmented
+          label="Preview surface"
+          value={viewMode}
+          onChange={onViewModeChange}
+          options={[
+            { value: 'desktop', label: 'Desktop' },
+            { value: 'mobile', label: 'Mobile' },
+          ]}
+        />
+      )}
 
       <Segmented
         label="Theme"

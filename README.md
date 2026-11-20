@@ -1,6 +1,6 @@
 # YouTube Thumbnail Previewer
 
-A single-page web app that shows how a video title, thumbnail, avatar, and channel name would look in the YouTube desktop and mobile home feeds, placed among real trending videos so you can judge it in context. Run `npm install`, then `npm run dev` for a local dev server, `npm run build` for a production build, `npm run test` for the unit tests, and `npm run lint` to lint. Everything runs client-side: your uploaded images are read with `URL.createObjectURL` and never leave your browser, and the only network requests at runtime are thumbnail/avatar images loaded from YouTube's public image hosts.
+A single-page web app that shows how a video title, thumbnail, avatar, and channel name would look in the YouTube desktop and mobile home feeds, placed among real trending videos so you can judge it in context. A Shorts mode does the same for a 9:16 thumbnail, showing it side by side on the desktop home shelf, the mobile app home shelf (where the title overlays the image) and the mobile channel Shorts grid. Run `npm install`, then `npm run dev` for a local dev server, `npm run build` for a production build, `npm run test` for the unit tests, and `npm run lint` to lint. Everything runs client-side: your uploaded images are read with `URL.createObjectURL` and never leave your browser, and the only network requests at runtime are thumbnail/avatar images loaded from YouTube's public image hosts.
 
 ## Refreshing the filler feed
 

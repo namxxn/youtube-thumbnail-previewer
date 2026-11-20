@@ -1,6 +1,6 @@
 import type { Video } from '../types';
 import { formatDuration, formatViews } from '../format';
-import { YouTubeThumbnail } from './YouTubeThumbnail';
+import { ThumbnailImage } from './ThumbnailImage';
 
 type CardVariant = 'desktop' | 'mobile';
 
@@ -50,27 +50,13 @@ interface ThumbnailProps {
 }
 
 function Thumbnail({ video, rounded }: ThumbnailProps) {
-  const { thumbnail } = video;
   return (
     <div
       className={`relative aspect-video w-full overflow-hidden bg-neutral-800 ${
         rounded ? 'rounded-xl' : ''
       }`}
     >
-      {thumbnail.kind === 'image' && (
-        <img src={thumbnail.src} alt="" className="h-full w-full object-cover" />
-      )}
-      {thumbnail.kind === 'youtube' && <YouTubeThumbnail videoId={thumbnail.videoId} />}
-      {thumbnail.kind === 'gradient' && (
-        <div
-          className="flex h-full w-full items-center justify-center"
-          style={{ background: `linear-gradient(135deg, ${thumbnail.from}, ${thumbnail.to})` }}
-        >
-          <span className="text-3xl font-black uppercase tracking-widest text-white/90">
-            {thumbnail.label}
-          </span>
-        </div>
-      )}
+      <ThumbnailImage thumbnail={video.thumbnail} />
       {/* Duration badge: 12px/500 on rgba(0,0,0,0.8), 4px radius, 3px/4px padding. */}
       <span className="absolute bottom-2 right-2 rounded-[4px] bg-black/80 px-[4px] py-[3px] text-[12px] font-medium leading-none text-white">
         {formatDuration(video.durationSeconds)}

@@ -8,32 +8,54 @@ import { FEED_REGION_CODES, regionCategoryIds, useFeed } from './useFeed';
 import { CATEGORY_LABELS, REGIONS } from './feedConstants';
 import { colorFromString } from './random';
 import { PreviewForm } from './components/PreviewForm';
-import type { CategoryOption, ViewMode } from './components/PreviewForm';
+import type { CategoryOption, Format, ViewMode } from './components/PreviewForm';
 import { DesktopPreview } from './components/DesktopPreview';
 import { MobilePreview } from './components/MobilePreview';
+import { ShortsPreview } from './components/ShortsPreview';
 
 // The brief fixes the user video's duration badge at 11:45 (705 seconds).
 const USER_DURATION_SECONDS = 705;
-const DEFAULT_REGION = 'IN';
+const DEFAULT_REGION = 'US';
+const ALL_CATEGORIES = '0';
+
+// Fields that differ between a long-form video and a Short are kept per format,
+// so switching formats never loses the other one's title or thumbnail.
+interface Draft {
+  title: string;
+  thumbnailFile: File | null;
+  position: number;
+}
+const EMPTY_DRAFT: Draft = { title: '', thumbnailFile: null, position: 2 };
 
 const regionOptions: CategoryOption[] = REGIONS.filter((region) =>
   FEED_REGION_CODES.includes(region.code),
 ).map((region) => ({ id: region.code, label: region.label }));
 
 export function App() {
-  const [title, setTitle] = useState('');
+  const [format, setFormat] = useState<Format>('video');
+  const [drafts, setDrafts] = useState<Record<Format, Draft>>({
+    video: EMPTY_DRAFT,
+    short: EMPTY_DRAFT,
+  });
   const [channelName, setChannelName] = useState('');
-  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('desktop');
   const [theme, setTheme] = useState<Theme>('dark');
   const [region, setRegion] = useState(DEFAULT_REGION);
-  const [categoryId, setCategoryId] = useState('0');
+  const [categoryId, setCategoryId] = useState(ALL_CATEGORIES);
   const [seed, setSeed] = useState(1);
-  const [position, setPosition] = useState(2);
   const frameRef = useRef<HTMLDivElement>(null);
 
-  const thumbnailUrl = useObjectUrl(thumbnailFile);
+  const isShort = format === 'short';
+  const draft = drafts[format];
+  const updateDraft = (patch: Partial<Draft>) =>
+    setDrafts((current) => ({ ...current, [format]: { ...current[format], ...patch } }));
+
+  const thumbnailUrls: Record<Format, string | null> = {
+    video: useObjectUrl(drafts.video.thumbnailFile),
+    short: useObjectUrl(drafts.short.thumbnailFile),
+  };
+  const thumbnailUrl = thumbnailUrls[format];
   const avatarUrl = useObjectUrl(avatarFile);
 
   const copyPreview = useCallback(() => {
@@ -43,13 +65,14 @@ export function App() {
     }
     return copyPreviewImage(node, {
       backgroundColor: THEMES[theme].bg,
-      fileName: viewMode === 'desktop' ? 'yt-preview-desktop.png' : 'yt-preview-mobile.png',
+      fileName: `yt-preview-${isShort ? 'shorts' : viewMode}.png`,
     });
-  }, [theme, viewMode]);
+  }, [theme, viewMode, isShort]);
 
   const { videos, shorts } = useFeed({
     region,
-    categoryId,
+    // Category filtering would leave the Shorts shelf sparse, so Shorts mode uses all of them.
+    categoryId: isShort ? ALL_CATEGORIES : categoryId,
     seed,
     excludeChannelName: channelName,
   });
@@ -57,7 +80,7 @@ export function App() {
   const trimmedChannel = channelName.trim() || 'Your Channel';
   const userVideo: Video = {
     id: 'user-video',
-    title: title.trim() || 'Your video title will appear here',
+    title: draft.title.trim() || `Your ${isShort ? 'Short' : 'video'} title will appear here`,
     channelName: trimmedChannel,
     viewCount: 0,
     age: 'Just now',
@@ -70,7 +93,7 @@ export function App() {
   };
 
   const categoryOptions: CategoryOption[] = [
-    { id: '0', label: 'All' },
+    { id: ALL_CATEGORIES, label: 'All' },
     ...regionCategoryIds(region).map((id) => ({
       id,
       label: CATEGORY_LABELS[id] ?? `Category ${id}`,
@@ -80,7 +103,7 @@ export function App() {
   const handleRegionChange = (nextRegion: string) => {
     setRegion(nextRegion);
     // The new region may not carry the currently selected category.
-    setCategoryId('0');
+    setCategoryId(ALL_CATEGORIES);
   };
 
   return (
@@ -93,11 +116,15 @@ export function App() {
               See how your video looks in the feed. Nothing is uploaded.
             </p>
             <PreviewForm
-              title={title}
-              onTitleChange={setTitle}
+              format={format}
+              onFormatChange={setFormat}
+              title={draft.title}
+              onTitleChange={(title) => updateDraft({ title })}
               channelName={channelName}
               onChannelNameChange={setChannelName}
-              onThumbnailChange={setThumbnailFile}
+              thumbnailFile={draft.thumbnailFile}
+              onThumbnailChange={(thumbnailFile) => updateDraft({ thumbnailFile })}
+              avatarName={avatarFile?.name}
               onAvatarChange={setAvatarFile}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
@@ -109,8 +136,8 @@ export function App() {
               categoryId={categoryId}
               categoryOptions={categoryOptions}
               onCategoryChange={setCategoryId}
-              position={position}
-              onPositionChange={setPosition}
+              position={draft.position}
+              onPositionChange={(position) => updateDraft({ position })}
               onShuffle={() => setSeed((current) => current + 1)}
               onCopyImage={copyPreview}
             />
@@ -118,12 +145,20 @@ export function App() {
         </aside>
 
         <main className="min-w-0 flex-1">
-          {viewMode === 'desktop' ? (
+          {isShort ? (
+            <ShortsPreview
+              userShort={userVideo}
+              shorts={shorts}
+              position={draft.position}
+              theme={theme}
+              frameRef={frameRef}
+            />
+          ) : viewMode === 'desktop' ? (
             <DesktopPreview
               userVideo={userVideo}
               videos={videos}
               shorts={shorts}
-              position={position}
+              position={draft.position}
               theme={theme}
               frameRef={frameRef}
             />
@@ -132,7 +167,7 @@ export function App() {
               userVideo={userVideo}
               videos={videos}
               shorts={shorts}
-              position={position}
+              position={draft.position}
               theme={theme}
               frameRef={frameRef}
             />
